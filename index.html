@@ -1,5 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WebXR AR: Load Model From Form</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js",
+        "three/examples/jsm/webxr/ARButton.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js",
+        "three/examples/jsm/utils/SkeletonUtils.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"
+      }
+    }
+  </script>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    #model-form {
+      position: absolute;
+      z-index: 999;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.8);
+      padding: 10px;
+      border-radius: 8px;
+      pointer-events: auto;
+    }
+  </style>
+</head>
 <!-- Changes marked with COMMENTS inside the <script> -->
-...
 <body>
 
 <form id="model-form">
