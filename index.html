@@ -110,31 +110,33 @@ function init() {
 
   // Handle model form submission
   modelForm.addEventListener('submit', e => {
-    e.preventDefault();
-    const url = document.getElementById('model-url').value.trim();
-    if (!url) return alert("Please enter a model URL.");
+  e.preventDefault();
+  const url = document.getElementById('model-url').value.trim();
+  if (!url) return alert("Please enter a model URL.");
 
-    const loader = new GLTFLoader();
-    loader.load(url,
-      gltf => {
-        // Remove previous model from scene if present
-        if (activeModel) {
-          scene.remove(activeModel);
-          activeModel = null;
-          modelPlaced = false;
-        }
-
-        loadedModel = gltf.scene;
+  const loader = new GLTFLoader();
+  loader.load(
+    url,
+    gltf => {
+      // Only remove old model if new one loads successfully
+      if (activeModel) {
+        scene.remove(activeModel);
+        activeModel = null;
         modelPlaced = false;
-        reticle.visible = true;
-        modelForm.style.display = 'none';
-        exitButton.style.display = 'block';
-        console.log("Model loaded:", url);
-      },
-      undefined,
-      err => alert("Failed to load model: " + err.message)
-    );
-  });
+      }
+
+      loadedModel = gltf.scene;
+      modelPlaced = false;
+      reticle.visible = true;
+      modelForm.style.display = 'none';
+      exitButton.style.display = 'block';
+      console.log("Model loaded:", url);
+    },
+    undefined,
+    err => alert("Failed to load model: " + err.message)
+  );
+});
+
 
   // Toggle form in AR session
   exitButton.addEventListener('click', () => {
