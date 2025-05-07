@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>WebXR AR: Load Multiple Models</title>
+  <title>WebXR AR: Load Multiple Models with Touch</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script type="importmap">
     {
@@ -59,7 +59,6 @@ let camera, scene, renderer;
 let controller, reticle;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
-let currentModel = null;
 let modelToPlace = null;
 
 const raycaster = new THREE.Raycaster();
@@ -77,7 +76,6 @@ animate();
 function init() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
   scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1));
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -137,6 +135,34 @@ function init() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
+
+  // Touch interaction using raycaster
+  window.addEventListener('touchend', (event) => {
+    if (!renderer.xr.isPresenting) return;
+    const touch = event.changedTouches[0];
+    const x = (touch.clientX / window.innerWidth) * 2 - 1;
+    const y = -(touch.clientY / window.innerHeight) * 2 + 1;
+    touchPoint.set(x, y);
+
+    raycaster.setFromCamera(touchPoint, camera);
+    const intersects = raycaster.intersectObjects(placedModels, true);
+
+    if (intersects.length > 0) {
+      const selected = intersects[0].object;
+      let root = selected;
+      while (root.parent && !placedModels.includes(root)) {
+        root = root.parent;
+      }
+
+      const originalScale = root.scale.clone();
+      root.scale.set(0.7, 0.7, 0.7);
+      setTimeout(() => {
+        root.scale.copy(originalScale);
+      }, 500);
+
+      console.log('Tapped model:', root.name || root.uuid);
+    }
+  });
 }
 
 function loadAndStoreModel(url) {
@@ -144,8 +170,6 @@ function loadAndStoreModel(url) {
     gltf => {
       modelToPlace = gltf.scene;
       reticle.visible = true;
-
-      // Save to session storage
       let urls = JSON.parse(sessionStorage.getItem('modelURLs') || '[]');
       urls.push(url);
       sessionStorage.setItem('modelURLs', JSON.stringify(urls));
@@ -161,7 +185,7 @@ function loadSessionModels() {
     loader.load(url,
       gltf => {
         const model = clone(gltf.scene);
-        model.position.set(0, 0, -0.5 - placedModels.length * 0.3); // staggered
+        model.position.set(0, 0, -0.5 - placedModels.length * 0.3);
         model.scale.set(0.5, 0.5, 0.5);
         scene.add(model);
         placedModels.push(model);
