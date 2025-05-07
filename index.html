@@ -18,12 +18,13 @@
     body { margin: 0; overflow: hidden; font-family: sans-serif; }
     #model-form {
       position: absolute;
-      z-index: 2;
+      z-index: 999;
       top: 10px;
       left: 10px;
       background: rgba(255,255,255,0.8);
       padding: 10px;
       border-radius: 8px;
+      pointer-events: auto;
     }
   </style>
 </head>
@@ -93,6 +94,14 @@ function init() {
   renderer.domElement.addEventListener('touchstart', onTouchStart, false);
   renderer.domElement.addEventListener('touchmove', onTouchMove, false);
   renderer.domElement.addEventListener('touchend', onTouchEnd, false);
+
+  // Hide/show form based on AR session state
+  renderer.xr.addEventListener('sessionstart', () => {
+    document.getElementById('model-form').style.display = 'none';
+  });
+  renderer.xr.addEventListener('sessionend', () => {
+    document.getElementById('model-form').style.display = 'block';
+  });
 
   document.getElementById('model-form').addEventListener('submit', e => {
     e.preventDefault();
