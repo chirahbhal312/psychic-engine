@@ -47,6 +47,15 @@ let hitTestSource = null;
 let hitTestSourceRequested = false;
 let loadedModel = null;
 let modelPlaced = false;
+let activeModel = null;
+
+let isDragging = false;
+let previousTouch = null;
+let initialDistance = null;
+let initialScale = 1;
+
+const raycaster = new THREE.Raycaster();
+const touchPoint = new THREE.Vector2();
 
 init();
 animate();
@@ -79,6 +88,12 @@ function init() {
   controller.addEventListener('select', onSelect);
   scene.add(controller);
 
+  window.addEventListener('resize', onWindowResize, false);
+
+  renderer.domElement.addEventListener('touchstart', onTouchStart, false);
+  renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+  renderer.domElement.addEventListener('touchend', onTouchEnd, false);
+
   document.getElementById('model-form').addEventListener('submit', e => {
     e.preventDefault();
     const url = document.getElementById('model-url').value.trim();
@@ -98,15 +113,72 @@ function init() {
   });
 }
 
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
 function onSelect() {
   if (reticle.visible && loadedModel && !modelPlaced) {
     const model = clone(loadedModel);
     model.position.setFromMatrixPosition(reticle.matrix);
     model.scale.set(0.5, 0.5, 0.5);
     scene.add(model);
+    activeModel = model;
     modelPlaced = true;
     reticle.visible = false;
   }
+}
+
+function getDistance(touch1, touch2) {
+  const dx = touch1.clientX - touch2.clientX;
+  const dy = touch1.clientY - touch2.clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function onTouchStart(event) {
+  if (event.touches.length === 1) {
+    const touch = event.touches[0];
+    touchPoint.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    touchPoint.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+
+    const cameraToUse = renderer.xr.getCamera().cameras[0];
+    raycaster.setFromCamera(touchPoint, cameraToUse);
+
+    const intersects = raycaster.intersectObject(activeModel, true);
+    if (intersects.length > 0) {
+      isDragging = true;
+      previousTouch = { x: touch.clientX, y: touch.clientY };
+    }
+  } else if (event.touches.length === 2 && activeModel) {
+    initialDistance = getDistance(event.touches[0], event.touches[1]);
+    initialScale = activeModel.scale.x;
+  }
+}
+
+function onTouchMove(event) {
+  if (!activeModel) return;
+
+  if (event.touches.length === 1 && isDragging) {
+    const dx = event.touches[0].clientX - previousTouch.x;
+    const dz = event.touches[0].clientY - previousTouch.y;
+    activeModel.rotation.y += dx * 0.01;
+    activeModel.position.x += dx * 0.001;
+    activeModel.position.z += dz * 0.001;
+    previousTouch = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+  } else if (event.touches.length === 2) {
+    const currentDistance = getDistance(event.touches[0], event.touches[1]);
+    const scaleFactor = currentDistance / initialDistance;
+    const newScale = THREE.MathUtils.clamp(initialScale * scaleFactor, 0.1, 2);
+    activeModel.scale.set(newScale, newScale, newScale);
+  }
+}
+
+function onTouchEnd() {
+  isDragging = false;
+  previousTouch = null;
+  initialDistance = null;
 }
 
 function animate() {
