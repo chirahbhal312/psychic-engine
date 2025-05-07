@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>WebXR AR: Multiple Models</title>
+  <title>WebXR AR: Load Model From Form</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script type="importmap">
     {
@@ -25,12 +25,6 @@
       padding: 10px;
       border-radius: 8px;
     }
-    #model-list {
-      margin-top: 10px;
-    }
-    .model-item {
-      margin: 5px 0;
-    }
   </style>
 </head>
 <body>
@@ -39,7 +33,6 @@
   <label>Model URL: </label>
   <input type="text" id="model-url" placeholder="e.g. cat.gltf" size="30" />
   <button type="submit">Load Model</button>
-  <div id="model-list"></div>
 </form>
 
 <script type="module">
@@ -52,8 +45,8 @@ let camera, scene, renderer;
 let controller, reticle;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
-let loadedModels = [];
-let selectedModel = null;
+let loadedModel = null;
+let modelPlaced = false;
 
 init();
 animate();
@@ -94,10 +87,9 @@ function init() {
     const loader = new GLTFLoader();
     loader.load(url,
       gltf => {
-        const model = gltf.scene;
-        loadedModels.push({ url, model });
-        addModelToList(url, model);
-        document.getElementById('model-url').value = '';
+        loadedModel = gltf.scene;
+        modelPlaced = false;
+        reticle.visible = true;
         console.log("Model loaded:", url);
       },
       undefined,
@@ -106,26 +98,14 @@ function init() {
   });
 }
 
-function addModelToList(url, model) {
-  const list = document.getElementById('model-list');
-  const item = document.createElement('div');
-  item.className = 'model-item';
-  const button = document.createElement('button');
-  button.textContent = `Select Model: ${url}`;
-  button.addEventListener('click', () => {
-    selectedModel = model;
-    reticle.visible = true;
-  });
-  item.appendChild(button);
-  list.appendChild(item);
-}
-
 function onSelect() {
-  if (reticle.visible && selectedModel) {
-    const model = clone(selectedModel);
+  if (reticle.visible && loadedModel && !modelPlaced) {
+    const model = clone(loadedModel);
     model.position.setFromMatrixPosition(reticle.matrix);
     model.scale.set(0.5, 0.5, 0.5);
     scene.add(model);
+    modelPlaced = true;
+    reticle.visible = false;
   }
 }
 
@@ -153,7 +133,7 @@ function render(_, frame) {
       hitTestSourceRequested = true;
     }
 
-    if (hitTestSource && selectedModel) {
+    if (hitTestSource && !modelPlaced && loadedModel) {
       const hitTestResults = frame.getHitTestResults(hitTestSource);
       if (hitTestResults.length > 0) {
         const hit = hitTestResults[0];
